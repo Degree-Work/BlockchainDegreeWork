@@ -14,14 +14,15 @@ from utils.date_utils import now_timestamp
 # для того, чтобы не засорять вывод предупреждениями
 warnings.filterwarnings('ignore')
 
-plt.rcParams["figure.figsize"] = (10, 10)
+# задаем размер графиков
+plt.rcParams["figure.figsize"] = (12, 12)
 
 
 class BlockchainProcess():
     def __init__(self, name, queue, channels):
         self.name = name
         self.chain = [genesis_block()]
-        self.size = 1
+        self.size = len(self.chain)
         self.queue = queue
         self.channels = channels
         self.run()
@@ -69,7 +70,7 @@ class BlockchainProcess():
             # print("Входящая цепочка должна быть valid")
             return
 
-        #print('Произошла замена на {} => {}'.format(self.name, len(chain)))
+        # print('Произошла замена на {} => {}'.format(self.name, len(chain)))
         self.update(chain)
 
     @staticmethod
@@ -111,29 +112,40 @@ class BlockchainProcess():
 
 
 def initial_blockchain(name, queue, channels):
+    # Запуск blockchain в процессе
     blockchain = BlockchainProcess(name, queue, channels)
-    arr = [0]
+
+    # Подготовка данных для анализа и отображения результатов на графиках
     chain = blockchain.chain
-    for i in range(1, len(chain)):
-        arr.append(chain[i].timestamp - chain[i - 1].timestamp)
-        #chain[i].print()
-    iter = np.arange(1, MAX_COUNT_BLOCKS + 1)
-    times = [0]
-    difficulties = [INITIAL_DIFFICULTY]
+    iter = np.arange(1, MAX_COUNT_BLOCKS + 1)  # массив 1..n для графиков
+    times = [0]  # массив времени mining blocks, первый элемент 0 т.к genesis_block
+    difficulties = [INITIAL_DIFFICULTY]  # сложность соответствующих блоков
+    deviation_count = 0  # это значение будет хранить кол-во отклонений по времени выше MINE_RATE
+    deviation_time_max = 0  # это значение будет хранить максимальное время mining block при данном тестирование
     for i in range(1, len(chain)):
         prev_timestamp = chain[i - 1].timestamp
         current_timestamp = chain[i].timestamp
         time_diff = current_timestamp - prev_timestamp
         times.append(time_diff)
         difficulties.append(chain[i].difficulty)
-    all_time = chain[-1].timestamp - chain[0].timestamp
+        deviation_time_max = max(deviation_time_max, time_diff)
+        if time_diff > MINE_RATE:
+            deviation_count += 1
+
+    all_time = chain[-1].timestamp - chain[0].timestamp  # все время которое было потрачено на mining всех блоков
+
+    # Подготовка графика
     legends = []
     legends.append("Mine rate = " + str(MINE_RATE) + "ms")
     legends.append("Count blocks = " + str(MAX_COUNT_BLOCKS))
-    legends.append("Average rate = " + str(all_time / MAX_COUNT_BLOCKS) + "ms")
+    average_time = all_time / MAX_COUNT_BLOCKS
+    average_time_percent = round((average_time / MINE_RATE) * 100, 2)
+    legends.append("Average rate = " + str(average_time) + "ms = " + str(average_time_percent) + "%")
     legends.append("Full time = " + str(all_time) + "ms")
-    # Prepare Data
-    # Create as many colors as there are unique midwest['category']
+    legends.append("Deviation Count = " + str(deviation_count))
+    deviation_time_max_percent = round((deviation_time_max / MINE_RATE) * 100, 2)
+    legends.append("Deviation Time Max = " + str(deviation_time_max) + "ms = " + str(deviation_time_max_percent) + "%")
+    # Подготовка данных
     scatter = plt.scatter(iter, times, c=difficulties, cmap='brg_r')
     plt.title('Time mining blocks where {} participants'.format(THREADS_COUNT))
     plt.ylabel('Mining Time')

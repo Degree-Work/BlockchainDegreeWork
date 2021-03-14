@@ -3,6 +3,10 @@ from utils.date_utils import now_timestamp
 
 
 class Block:
+    """
+    Просто data-class для хранения данных.
+    """
+
     def __init__(self, timestamp, last_hash, hash, data, nonce, difficulty):
         self.timestamp = timestamp
         self.last_hash = last_hash
@@ -21,10 +25,20 @@ class Block:
 
 
 def genesis_block():
+    """
+    Генерация первого блока в blockchain.
+    :return: первый блок
+    """
     return Block(now_timestamp(), "---", "hash-one", "data", 0, INITIAL_DIFFICULTY)
 
 
 def adjust_difficulty(last_block, timestamp):
+    """
+    Регулирование сложности, функция смотрит на то как долго mine блок и регулирует при необходимости.
+    :param last_block: обычно это последний block в blockchain
+    :param timestamp: время обычно это timestamp.now()
+    :return: сложность с которой следует делать mine
+    """
     difficulty = last_block.difficulty
     if timestamp - last_block.timestamp > MINE_RATE:
         difficulty -= 1
