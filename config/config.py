@@ -1,7 +1,7 @@
 INITIAL_DIFFICULTY = 3  # начальная сложность
 
-MINE_RATE = 5000  # 1 second
+MINE_RATE = 10000  # 1 second
 
 MAX_COUNT_BLOCKS = 100
 
-THREADS_COUNT = 50
+THREADS_COUNT = 10
