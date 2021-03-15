@@ -10,12 +10,8 @@ from config.config import *
 from utils.crypto_hash import crypto_hash, binary_representation
 from utils.date_utils import now_timestamp
 
-# для того, чтобы не засорять вывод предупреждениями
 warnings.filterwarnings('ignore')
-
-# задаем размер графиков
 plt.rcParams["figure.figsize"] = (12, 12)
-
 
 class BlockchainProcess():
     def __init__(self, name, queue, channels):
@@ -86,10 +82,6 @@ class BlockchainProcess():
             channel.put(self.chain)
 
     def check_channels(self):
-        """
-        Проверка на то есть ли новости от других майнеров/блокчейнов.
-        :return: true - что-то есть новое, false - новостей нет
-        """
         if not self.queue.empty():
             chain = self.queue.get()
             self.replace_chain(chain)
@@ -97,21 +89,16 @@ class BlockchainProcess():
         else:
             return False
 
-    def print(self):
-        print("Blockchain: " + str(self.name) + " " + str(len(self.chain)))
-
 
 def initial_blockchain(name, queue, channels):
-    # Запуск blockchain в процессе
     blockchain = BlockchainProcess(name, queue, channels)
 
-    # Подготовка данных для анализа и отображения результатов на графиках
     chain = blockchain.chain
-    iter = np.arange(1, MAX_COUNT_BLOCKS + 1)  # массив 1..n для графиков
-    times = [0]  # массив времени mining blocks, первый элемент 0 т.к genesis_block
-    difficulties = [INITIAL_DIFFICULTY]  # сложность соответствующих блоков
-    deviation_count = 0  # это значение будет хранить кол-во отклонений по времени выше MINE_RATE
-    deviation_time_max = 0  # это значение будет хранить максимальное время mining block при данном тестирование
+    iter = np.arange(1, MAX_COUNT_BLOCKS + 1)
+    times = [0]
+    difficulties = [INITIAL_DIFFICULTY]
+    deviation_count = 0
+    deviation_time_max = 0
     for i in range(1, len(chain)):
         prev_timestamp = chain[i - 1].timestamp
         current_timestamp = chain[i].timestamp
@@ -122,9 +109,8 @@ def initial_blockchain(name, queue, channels):
         if time_diff > MINE_RATE:
             deviation_count += 1
 
-    all_time = chain[-1].timestamp - chain[0].timestamp  # все время которое было потрачено на mining всех блоков
+    all_time = chain[-1].timestamp - chain[0].timestamp
 
-    # Подготовка графика
     legends = []
     legends.append("Mine rate = " + str(MINE_RATE) + "ms")
     legends.append("Count blocks = " + str(MAX_COUNT_BLOCKS))
@@ -136,7 +122,6 @@ def initial_blockchain(name, queue, channels):
     deviation_time_max_percent = round((deviation_time_max / MINE_RATE) * 100, 2)
     legends.append("Deviation Time Max = " + str(deviation_time_max) + "ms = " + str(deviation_time_max_percent) + "%")
 
-    # Подготовка данных
     scatter = plt.scatter(iter, times, c=difficulties, cmap='brg_r')
     plt.title('Time mining blocks where {} participants'.format(PROCESS_COUNT))
     plt.ylabel('Mining Time')
@@ -162,7 +147,6 @@ if __name__ == '__main__':
     for p in producers:
         p.start()
 
-    # Как и в случае с потоками, у нас есть метод join (), который синхронизирует нашу программу.
     for p in producers:
         p.join()
 

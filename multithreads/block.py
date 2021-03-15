@@ -11,26 +11,12 @@ class Block:
         self.nonce = nonce
         self.difficulty = difficulty
 
-    def print(self):
-        print("Block(timestamp=" + str(self.timestamp) +
-              ", last_hash=" + str(self.last_hash) +
-              ", hash=" + str(self.hash) +
-              ", data=" + str(self.data) +
-              ", nonce=" + str(self.nonce) +
-              ", difficulty=" + str(self.difficulty))
-
 
 def genesis_block():
     return Block(now_timestamp(), "---", "hash-one", "data", 0, INITIAL_DIFFICULTY)
 
 
 def adjust_difficulty(last_block, timestamp):
-    """
-    Регулирование сложности, функция смотрит на то как долго mine блок и регулирует при необходимости.
-    :param last_block: обычно это последний block в blockchain
-    :param timestamp: время обычно это timestamp.now()
-    :return: сложность с которой следует делать mine
-    """
     difficulty = last_block.difficulty
     if timestamp - last_block.timestamp > MINE_RATE:
         difficulty -= 1
