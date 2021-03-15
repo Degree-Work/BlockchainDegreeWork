@@ -3,10 +3,6 @@ from utils.date_utils import now_timestamp
 
 
 class Block:
-    """
-    Просто data-class для хранения данных.
-    """
-
     def __init__(self, timestamp, last_hash, hash, data, nonce, difficulty):
         self.timestamp = timestamp
         self.last_hash = last_hash
@@ -25,10 +21,6 @@ class Block:
 
 
 def genesis_block():
-    """
-    Генерация первого блока в blockchain.
-    :return: первый блок
-    """
     return Block(now_timestamp(), "---", "hash-one", "data", 0, INITIAL_DIFFICULTY)
 
 

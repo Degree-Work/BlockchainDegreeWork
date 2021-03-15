@@ -1,4 +1,3 @@
-import os
 import warnings
 from datetime import datetime
 from multiprocessing import Process, Queue
@@ -28,11 +27,9 @@ class BlockchainProcess():
         self.run()
 
     def run(self):
-        print('Starting blockchain {} => {}'.format(self.name, os.getpid()))
         while self.size < MAX_COUNT_BLOCKS:
             self.check_channels()
             self.mining(datetime.now())
-        print('Finished blockchain %s.' % self.name)
 
     def mining(self, data):
         last_block = self.chain[-1]
@@ -62,15 +59,9 @@ class BlockchainProcess():
 
     def replace_chain(self, chain):
         if len(chain) <= len(self.chain):
-            # print('Неудачная попыка замены на: {} | Входящая цепочка должна быть длиннее {} <> {}'
-            #      .format(self.name, len(chain), len(self.chain)))
             return
-
         if not self.is_valid_chain(chain):
-            # print("Входящая цепочка должна быть valid")
             return
-
-        # print('Произошла замена на {} => {}'.format(self.name, len(chain)))
         self.update(chain)
 
     @staticmethod
@@ -101,7 +92,6 @@ class BlockchainProcess():
         """
         if not self.queue.empty():
             chain = self.queue.get()
-            # print('Channel NOT EMPTY {} => {}'.format(self.name, os.getpid()))
             self.replace_chain(chain)
             return True
         else:
@@ -145,9 +135,10 @@ def initial_blockchain(name, queue, channels):
     legends.append("Deviation Count = " + str(deviation_count))
     deviation_time_max_percent = round((deviation_time_max / MINE_RATE) * 100, 2)
     legends.append("Deviation Time Max = " + str(deviation_time_max) + "ms = " + str(deviation_time_max_percent) + "%")
+
     # Подготовка данных
     scatter = plt.scatter(iter, times, c=difficulties, cmap='brg_r')
-    plt.title('Time mining blocks where {} participants'.format(THREADS_COUNT))
+    plt.title('Time mining blocks where {} participants'.format(PROCESS_COUNT))
     plt.ylabel('Mining Time')
     plt.xlabel('Blocks')
 
@@ -158,19 +149,16 @@ def initial_blockchain(name, queue, channels):
 
 
 if __name__ == '__main__':
-    n = THREADS_COUNT
-
     queues = []
-    for i in range(n):
+    for i in range(PROCESS_COUNT):
         queues.append(Queue())
 
     producers = []
-    for i in range(n):
-        number = "#" + str(i)
-        producers.append(Process(target=initial_blockchain, args=(number, queues[i], queues[:i] + queues[i + 1:])))
+    for i in range(PROCESS_COUNT):
+        process_name = "#" + str(i)
+        producers.append(
+            Process(target=initial_blockchain, args=(process_name, queues[i], queues[:i] + queues[i + 1:])))
 
-    # Запуск производителей и потребителей.
-    # Виртуальная машина Python запускает новые независимые процессы для каждого объекта Process.
     for p in producers:
         p.start()
 

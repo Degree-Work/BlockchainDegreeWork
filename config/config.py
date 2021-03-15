@@ -1,7 +1,7 @@
 INITIAL_DIFFICULTY = 3  # начальная сложность
 
-MINE_RATE = 10000  # 1 second
+MINE_RATE = 10000  # 10 second = время за которое мы хотим генерировать 1 блок
 
-MAX_COUNT_BLOCKS = 100
+MAX_COUNT_BLOCKS = 100  # кол-во блоков, которое мы хотим сгенерировать
 
-THREADS_COUNT = 100
+PROCESS_COUNT = 100  # кол-во участников в сети
