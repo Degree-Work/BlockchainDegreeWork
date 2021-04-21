@@ -13,13 +13,18 @@ from utils.date_utils import now_timestamp
 warnings.filterwarnings('ignore')
 plt.rcParams["figure.figsize"] = (12, 12)
 
+
 class BlockchainProcess():
-    def __init__(self, name, queue, channels):
+    def __init__(self, name, queue, channels, results):
+        self.results = results
         self.name = name
         self.chain = [genesis_block()]
         self.size = len(self.chain)
         self.queue = queue
         self.channels = channels
+        self.connect = 0
+        self.iteration = 0
+        self.update_action = 0
         self.run()
 
     def run(self):
@@ -36,6 +41,7 @@ class BlockchainProcess():
         timestamp = now_timestamp()
         check_channels = False
         while binary_representation(hash)[:difficulty] != '0' * difficulty:
+            self.iteration += 1
             check_channels = self.check_channels()
             if check_channels:
                 break
@@ -52,6 +58,7 @@ class BlockchainProcess():
         block = Block(timestamp, last_hash, hash, data, nonce, difficulty)
         self.chain.append(block)
         self.size = len(self.chain)
+        self.send_result()
 
     def replace_chain(self, chain):
         if len(chain) <= len(self.chain):
@@ -76,23 +83,38 @@ class BlockchainProcess():
     def update(self, chain):
         self.chain = chain
         self.size = len(self.chain)
+        self.update_action += 1
+        self.send_result()
 
     def notification(self):
+        self.send_result()
         for channel in self.channels:
             channel.put(self.chain)
 
     def check_channels(self):
-        if not self.queue.empty():
+        temp_max_chain = []
+        while not self.queue.empty():
+            self.connect += 1
             chain = self.queue.get()
-            self.replace_chain(chain)
+            if len(chain) > len(temp_max_chain):
+                temp_max_chain = chain
+
+        if len(temp_max_chain) > 0:
+            self.replace_chain(temp_max_chain)
             return True
         else:
             return False
 
+    def send_result(self):
+        self.results.put((self.connect,self.iteration, self.update_action))
+        self.iteration = 0
+        self.connect = 0
+        self.update_action = 0
 
-def initial_blockchain(name, queue, channels):
-    blockchain = BlockchainProcess(name, queue, channels)
 
+
+def initial_blockchain(name, queue, channels, results):
+    blockchain = BlockchainProcess(name, queue, channels, results)
     chain = blockchain.chain
     iter = np.arange(1, MAX_COUNT_BLOCKS + 1)
     times = [0]
@@ -121,6 +143,7 @@ def initial_blockchain(name, queue, channels):
     legends.append("Deviation Count = " + str(deviation_count))
     deviation_time_max_percent = round((deviation_time_max / MINE_RATE) * 100, 2)
     legends.append("Deviation Time Max = " + str(deviation_time_max) + "ms = " + str(deviation_time_max_percent) + "%")
+    legends.append("Average Difficulty = " + str(sum(difficulties) / len(difficulties)))
 
     scatter = plt.scatter(iter, times, c=difficulties, cmap='brg_r')
     plt.title('Time mining blocks where {} participants'.format(PROCESS_COUNT))
@@ -131,9 +154,23 @@ def initial_blockchain(name, queue, channels):
     plt.colorbar()
     plt.grid(True)
     plt.show()
+    results.put((blockchain.connect, blockchain.iteration, blockchain.update_action))
+
+    iter_global = 0
+    connect_global = 0
+    updates_global = 0
+    while not results.empty():
+        tuple = results.get()
+        connect_global += tuple[0]
+        iter_global += tuple[1]
+        updates_global += tuple[2]
+    print("Global Iteration: " + str(iter_global))
+    print("Global Connect: " + str(connect_global))
+    print("Global Updates: " + str(updates_global))
 
 
 if __name__ == '__main__':
+    results = Queue()
     queues = []
     for i in range(PROCESS_COUNT):
         queues.append(Queue())
@@ -142,7 +179,7 @@ if __name__ == '__main__':
     for i in range(PROCESS_COUNT):
         process_name = "#" + str(i)
         producers.append(
-            Process(target=initial_blockchain, args=(process_name, queues[i], queues[:i] + queues[i + 1:])))
+            Process(target=initial_blockchain, args=(process_name, queues[i], queues[:i] + queues[i + 1:], results)))
 
     for p in producers:
         p.start()
